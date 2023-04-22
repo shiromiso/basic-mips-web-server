@@ -3,8 +3,10 @@
 .global __start
 
 __start:
-	li $v0, 4
-	la $a0, out_string
+	li $v0, 4004
+	li $a0, 1
+	la $a1, msg
+	li $a2, 13
 	syscall
 
 	li $v0, 4001
@@ -12,4 +14,6 @@ __start:
 	syscall
 
 .section .data
-out_string: .asciiz "\nHello, World!\n"
+
+msg:
+.asciz "Hello World!\n"
