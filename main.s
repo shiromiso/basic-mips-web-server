@@ -1,5 +1,14 @@
 .section .data
 
+system_array:
+	.space 48
+
+system_command_part1:
+.asciz "/bin/sh"
+
+system_command_part2:
+.asciz "-c"
+
 msg1:
 .asciz "Before\n"
 
@@ -7,7 +16,7 @@ msg2:
 .asciz "After\n"
 
 command:
-.asciz "/usr/bin/ls"
+.asciz "/bin/echo Hello; echo Bye"
 
 .section .text
 
@@ -18,7 +27,8 @@ main:
 	la $a0, msg1
 	jal puts
 
-	jal execve_test
+	la $a0, command
+	jal system
 
 	la $a0, msg2
 	jal puts
@@ -79,19 +89,48 @@ puts:
 	addi $sp, $sp, 4
 	jr $ra
 
-execve_test:
-	addi $sp, $sp, -4
-	sw $ra, 0($sp)
+system:
+	# IN - $a0 - Command to run
 
-	la $a0, command
-	addi $a1, $zero, 0
-	addi $a2, $zero, 0
+	addi $sp, $sp, -4
+	sw $ra, 0($sp)	
+
+	addi $t0, $zero, 0
+	la $t1, system_command_part1
+	sw $t1, system_array($t0)
+
+	addi $t0, $t0, 4
+	la $t1, system_command_part2
+	sw $t1, system_array($t0)
+
+	# Load command from argument
+	addi $t0, $t0, 4
+	addi $t1, $zero, 0
+	or $t1, $t1, $a0
+	sw $t1, system_array($t0)
+
+	addi $t0, $t0, 4
+	addi $t1, $zero, 0
+	sw $t1, system_array($t0)
+
+	# fork()
+	li $v0, 4002
+	syscall
+
+	# On parent, just return
+	bne $v0, $zero, system_exit
+
+	# On child, do execve()
+	la $a0, system_command_part1 # Command
+	la $a1, system_array         # Arguments
+	addi $a2, $zero, 0           # Environment
 	li $v0, 4011
 	syscall
 
-	lw $ra, 0($sp)
-	addi $sp, $sp, 4
-	jr $ra
+	system_exit:
+		lw $ra, 0($sp)
+		addi $sp, $sp, 4
+		jr $ra
 
 exit:
 	li $v0, 4001
