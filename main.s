@@ -1,7 +1,13 @@
 .section .data
 
-welcome_msg:
-.asciz "Embedded HTTP Server started\n\n"
+msg1:
+.asciz "Before\n"
+
+msg2:
+.asciz "After\n"
+
+command:
+.asciz "/usr/bin/ls"
 
 .section .text
 
@@ -9,17 +15,16 @@ welcome_msg:
 
 __start:
 main:
-	la $a0, welcome_msg
+	la $a0, msg1
+	jal puts
+
+	jal execve_test
+
+	la $a0, msg2
 	jal puts
 
 	li $a0, 13
 	jal exit
-
-exit:
-	li $v0, 4001
-	syscall
-
-	jr $ra
 
 strlen:
 	# IN - $a0 - String address
@@ -72,4 +77,24 @@ puts:
 
 	lw $ra, 0($sp)
 	addi $sp, $sp, 4
+	jr $ra
+
+execve_test:
+	addi $sp, $sp, -4
+	sw $ra, 0($sp)
+
+	la $a0, command
+	addi $a1, $zero, 0
+	addi $a2, $zero, 0
+	li $v0, 4011
+	syscall
+
+	lw $ra, 0($sp)
+	addi $sp, $sp, 4
+	jr $ra
+
+exit:
+	li $v0, 4001
+	syscall
+
 	jr $ra
