@@ -15,6 +15,12 @@ msg1:
 msg2:
 .asciz "After\n"
 
+command_led_on:
+.asciz "echo 1 > /sys/class/leds/green:wps/brightness"
+
+command_led_off:
+.asciz "echo 0 > /sys/class/leds/green:wps/brightness"
+
 command:
 .asciz "/bin/echo Hello; echo Bye"
 
@@ -27,7 +33,7 @@ main:
 	la $a0, msg1
 	jal puts
 
-	la $a0, command
+	la $a0, command_led_on
 	jal system
 
 	la $a0, msg2
@@ -93,7 +99,7 @@ system:
 	# IN - $a0 - Command to run
 
 	addi $sp, $sp, -4
-	sw $ra, 0($sp)	
+	sw $ra, 0($sp)
 
 	addi $t0, $zero, 0
 	la $t1, system_command_part1
