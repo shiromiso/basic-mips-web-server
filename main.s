@@ -9,11 +9,32 @@ system_command_part1:
 system_command_part2:
 .asciz "-c"
 
+socket_struct:
+.byte 0x02 # sin_family = AF_INET
+.byte 0x00
+.byte 0x1f # sin_port = 8080
+.byte 0x90
+
+.byte 0x00 # sin_addr = 0.0.0.0
+.byte 0x00
+.byte 0x00
+.byte 0x00
+
+.byte 0x30 # sin_zero
+.byte 0x30
+.byte 0x30
+.byte 0x30
+
+.byte 0x30 # sin_zero
+.byte 0x30
+.byte 0x30
+.byte 0x30
+
 msg1:
-.asciz "Before\n"
+.asciz "Program start\n"
 
 msg2:
-.asciz "After\n"
+.asciz "Program end\n"
 
 command_led_on:
 .asciz "echo 1 > /sys/class/leds/green:wps/brightness"
@@ -33,13 +54,51 @@ main:
 	la $a0, msg1
 	jal puts
 
-	la $a0, command_led_on
-	jal system
+	#la $a0, command_led_on
+	#jal system
 
-	la $a0, msg2
-	jal puts
 
-	li $a0, 13
+	# socket(AF_INET, SOCK_STREAM, 0)
+	li $a0, 2 # int family   = AF_INET
+	li $a1, 2 # int type     = SOCK_STREAM
+	li $a2, 0 # int protocol = 0
+	li $v0, 4183
+	syscall
+
+	# Save socket fd
+	li $s0, 0
+	or $s0, $s0, $v0
+
+	# bind()
+	li $a0, 0
+	or $a0, $a0, $s0      # int fd
+	la $a1, socket_struct # struct sockaddr *umyaddr
+	li $a2, 16            # int addrlen
+	li $v0, 4169
+	syscall
+
+	# listen()
+	li $a0, 0
+	or $a0, $a0, $s0      # int fd
+	li $a1, 10            # int backlog
+	li $v0, 4174
+	syscall
+
+	# accept()
+	li $a0, 0
+	or $a0, $a0, $s0      # int fd
+	li $a1, 0             # struct sockaddr *upeer_sockaddr
+	li $a2, 0             # int *upeer_addrlen
+	li $v0, 4168
+	syscall
+
+	#la $a0, msg2
+	#jal puts
+
+	#li $a0, 13
+
+	li $a0, 0
+	or $a0, $a0, $v0
 	jal exit
 
 strlen:
@@ -87,8 +146,8 @@ puts:
 	addi $a1, $zero, 0
 	or $a1, $a1, $a0
 
-	li $v0, 4004
 	li $a0, 1
+	li $v0, 4004
 	syscall
 
 	lw $ra, 0($sp)
