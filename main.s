@@ -9,6 +9,24 @@ system_command_part1:
 system_command_part2:
 .asciz "-c"
 
+msg_cmd_on:
+.asciz "Sending command: LED on\n"
+
+msg_cmd_off:
+.asciz "Sending command: LED off\n"
+
+msg_cmd_err:
+.asciz "Error: bad command\n"
+
+response_cmd_on:
+.asciz "HTTP/1.1 200 OK\nContent-Length: 20\nContent-Type: text/plain; charset=utf-8\n\nSent command: LED on"
+
+response_cmd_off:
+.asciz "HTTP/1.1 200 OK\nContent-Length: 21\nContent-Type: text/plain; charset=utf-8\n\nSent command: LED off"
+
+response_cmd_err:
+.asciz "HTTP/1.1 500 Internal Server Error\nContent-Length: 18\nContent-Type: text/plain; charset=utf-8\n\nError: bad command"
+
 socket_struct:
 .byte 0x02 # sin_family = AF_INET
 .byte 0x00
@@ -33,9 +51,6 @@ socket_struct:
 read_buf:
 .byte 0:300 # 300 bytes, each equal to 0
 
-write_buf:
-.asciz "aaaaaaaa\n"
-
 msg1:
 .asciz "Program start\n"
 
@@ -48,8 +63,6 @@ command_led_on:
 command_led_off:
 .asciz "echo 0 > /sys/class/leds/green:wps/brightness"
 
-command:
-.asciz "/bin/echo Hello; echo Bye"
 
 .section .text
 
@@ -59,10 +72,6 @@ __start:
 main:
     la $a0, msg1
     jal puts
-
-    #la $a0, command_led_on
-    #jal system
-
 
     # socket(AF_INET, SOCK_STREAM, 0)
     li $a0, 2 # int family   = AF_INET
@@ -87,43 +96,91 @@ main:
     li $v0, 4174
     syscall
 
-    # accept()
-    move $a0, $s0      # int fd
-    li $a1, 0             # struct sockaddr *upeer_sockaddr
-    li $a2, 0             # int *upeer_addrlen
-    li $v0, 4168
-    syscall
 
-    # Save connection fd
-    move $s1, $v0
+	main_loop:
+	    # accept()
+	    move $a0, $s0  # int fd
+	    li $a1, 0      # struct sockaddr *upeer_sockaddr
+	    li $a2, 0      # int *upeer_addrlen
+	    li $v0, 4168
+	    syscall
 
-    # read()
-    # move $a0, $s1      # int fd
-    # li $a1, read_buf      # char *buf
-    # li $a2, 100           # size_t count
-    # li $v0, 4003
-    # syscall
+	    # Save connection fd
+	    move $s1, $v0
 
-    move $a0, $s1
-    la $a1, read_buf
-    jal fgets
+	    # fgets()
+	    move $a0, $s1
+	    la $a1, read_buf
+	    jal fgets
 
-    move $a0, $s1
-    la $a1, read_buf
-    jal fputs
+	    la $t0, read_buf
 
-    # close() connection fd
-    move $a0, $s1      # int fd
-    li $v0, 4006
-    syscall
+	    addi $t0, 5
+		lb $t1, 0($t0)
+
+		li $t2, 49 # ASCII '1'
+		beq $t1, $t2, cmd_on
+
+		li $t2, 48 # ASCII '0'
+		beq $t1, $t2, cmd_off
+
+		j cmd_err
+
+		cmd_on:
+			la $a0, msg_cmd_on
+			jal puts
+
+			move $a0, $s1
+			la $a1, response_cmd_on
+			jal fputs
+
+    		la $a0, command_led_on
+    		jal system
+
+			j cmd_finish
+
+		cmd_off:
+			la $a0, msg_cmd_off
+			jal puts
+
+			move $a0, $s1
+			la $a1, response_cmd_off
+			jal fputs
+
+    		la $a0, command_led_off
+    		jal system
+
+			j cmd_finish
+
+		cmd_err:
+			la $a0, msg_cmd_err
+			jal puts
+
+			move $a0, $s1
+			la $a1, response_cmd_err
+			jal fputs
+
+			j cmd_finish
+
+		cmd_finish:
+
+    	# fputs()
+		move $a0, $s1
+		la $a1, read_buf
+		jal fputs
+
+	    # close() connection fd
+	    move $a0, $s1      # int fd
+	    li $v0, 4006
+	    syscall
+
+		j main_loop
+
 
     # close() socket fd
     move $a0, $s0      # int fd
     li $v0, 4006
     syscall
-
-	# la $a0, read_buf
-	# jal puts
 
     la $a0, msg2
     jal puts
@@ -132,6 +189,7 @@ main:
 
     move $a0, $v0
     jal exit
+
 
 strlen:
     # IN - $a0 - String address
@@ -155,6 +213,7 @@ strlen:
 
         jr $ra
 
+
 fgets:
 	# IN - $a0 - fd
     # IN - $a1 - Buffer address
@@ -169,6 +228,7 @@ fgets:
     lw $ra, 0($sp)
     addi $sp, $sp, 4
     jr $ra
+
 
 fputs:
 	# IN - $a0 - fd
@@ -195,6 +255,7 @@ fputs:
     addi $sp, $sp, 4
     jr $ra
 
+
 puts:
     # IN - $a0 - String address
 
@@ -208,6 +269,7 @@ puts:
     lw $ra, 0($sp)
     addi $sp, $sp, 4
     jr $ra
+
 
 system:
     # IN - $a0 - Command to run
@@ -250,6 +312,7 @@ system:
         lw $ra, 0($sp)
         addi $sp, $sp, 4
         jr $ra
+
 
 exit:
     li $v0, 4001
