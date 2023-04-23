@@ -105,7 +105,11 @@ main:
     # syscall
 
     move $a0, $s1
-    la $a1, write_buf
+    la $a1, read_buf
+    jal fgets
+
+    move $a0, $s1
+    la $a1, read_buf
     jal fputs
 
     # close() connection fd
@@ -150,6 +154,21 @@ strlen:
         move $v0, $t0
 
         jr $ra
+
+fgets:
+	# IN - $a0 - fd
+    # IN - $a1 - Buffer address
+
+    addi $sp, $sp, -4
+    sw $ra, 0($sp)
+
+	li $a2, 200
+    li $v0, 4003
+    syscall
+
+    lw $ra, 0($sp)
+    addi $sp, $sp, 4
+    jr $ra
 
 fputs:
 	# IN - $a0 - fd
