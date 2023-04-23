@@ -97,84 +97,84 @@ main:
     syscall
 
 
-	main_loop:
-	    # accept()
-	    move $a0, $s0  # int fd
-	    li $a1, 0      # struct sockaddr *upeer_sockaddr
-	    li $a2, 0      # int *upeer_addrlen
-	    li $v0, 4168
-	    syscall
+    main_loop:
+        # accept()
+        move $a0, $s0  # int fd
+        li $a1, 0      # struct sockaddr *upeer_sockaddr
+        li $a2, 0      # int *upeer_addrlen
+        li $v0, 4168
+        syscall
 
-	    # Save connection fd
-	    move $s1, $v0
+        # Save connection fd
+        move $s1, $v0
 
-	    # fgets()
-	    move $a0, $s1
-	    la $a1, read_buf
-	    jal fgets
+        # fgets()
+        move $a0, $s1
+        la $a1, read_buf
+        jal fgets
 
-	    la $t0, read_buf
+        la $t0, read_buf
 
-	    addi $t0, 5
-		lb $t1, 0($t0)
+        addi $t0, 5
+        lb $t1, 0($t0)
 
-		li $t2, 49 # ASCII '1'
-		beq $t1, $t2, cmd_on
+        li $t2, 49 # ASCII '1'
+        beq $t1, $t2, cmd_on
 
-		li $t2, 48 # ASCII '0'
-		beq $t1, $t2, cmd_off
+        li $t2, 48 # ASCII '0'
+        beq $t1, $t2, cmd_off
 
-		j cmd_err
+        j cmd_err
 
-		cmd_on:
-			la $a0, msg_cmd_on
-			jal puts
+        cmd_on:
+            la $a0, msg_cmd_on
+            jal puts
 
-			move $a0, $s1
-			la $a1, response_cmd_on
-			jal fputs
+            move $a0, $s1
+            la $a1, response_cmd_on
+            jal fputs
 
-    		la $a0, command_led_on
-    		jal system
+            la $a0, command_led_on
+            jal system
 
-			j cmd_finish
+            j cmd_finish
 
-		cmd_off:
-			la $a0, msg_cmd_off
-			jal puts
+        cmd_off:
+            la $a0, msg_cmd_off
+            jal puts
 
-			move $a0, $s1
-			la $a1, response_cmd_off
-			jal fputs
+            move $a0, $s1
+            la $a1, response_cmd_off
+            jal fputs
 
-    		la $a0, command_led_off
-    		jal system
+            la $a0, command_led_off
+            jal system
 
-			j cmd_finish
+            j cmd_finish
 
-		cmd_err:
-			la $a0, msg_cmd_err
-			jal puts
+        cmd_err:
+            la $a0, msg_cmd_err
+            jal puts
 
-			move $a0, $s1
-			la $a1, response_cmd_err
-			jal fputs
+            move $a0, $s1
+            la $a1, response_cmd_err
+            jal fputs
 
-			j cmd_finish
+            j cmd_finish
 
-		cmd_finish:
+        cmd_finish:
 
-    	# fputs()
-		move $a0, $s1
-		la $a1, read_buf
-		jal fputs
+        # fputs()
+        move $a0, $s1
+        la $a1, read_buf
+        jal fputs
 
-	    # close() connection fd
-	    move $a0, $s1      # int fd
-	    li $v0, 4006
-	    syscall
+        # close() connection fd
+        move $a0, $s1      # int fd
+        li $v0, 4006
+        syscall
 
-		j main_loop
+        j main_loop
 
 
     # close() socket fd
@@ -215,13 +215,13 @@ strlen:
 
 
 fgets:
-	# IN - $a0 - fd
+    # IN - $a0 - fd
     # IN - $a1 - Buffer address
 
     addi $sp, $sp, -4
     sw $ra, 0($sp)
 
-	li $a2, 200
+    li $a2, 200
     li $v0, 4003
     syscall
 
@@ -231,7 +231,7 @@ fgets:
 
 
 fputs:
-	# IN - $a0 - fd
+    # IN - $a0 - fd
     # IN - $a1 - String address
 
     addi $sp, $sp, -4
@@ -240,7 +240,7 @@ fputs:
     addi $sp, $sp, -4
     sw $a0, 0($sp)
 
-	move $a0, $a1
+    move $a0, $a1
     jal strlen
 
     lw $a0, 0($sp)
